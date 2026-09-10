@@ -76,7 +76,7 @@ def main():
         question = query["question"]
         print(f"[{i+1}/{len(QUERIES)}] {question[:70]}...")
         try:
-            result = invoke_agent(question=question)
+            result = invoke_agent(question=question, environment="demo")
             response = result["output"]
             print(f"  → {response[:100].replace(chr(10), ' ')}{'...' if len(response) > 100 else ''}\n")
         except Exception as e:
@@ -92,7 +92,9 @@ def main():
             question = turn["question"]
             print(f"  Turn {j+1}: {question[:65]}...")
             try:
-                result = invoke_agent(question=question, thread_id=thread_id)
+                result = invoke_agent(
+                    question=question, thread_id=thread_id, environment="demo"
+                )
                 response = result["output"]
                 print(f"    → {response[:80].replace(chr(10), ' ')}{'...' if len(response) > 80 else ''}")
             except Exception as e:

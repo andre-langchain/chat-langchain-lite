@@ -478,6 +478,14 @@ app, rt = fast_app(
 )
 
 
+def _session_user_id(session) -> str:
+    user_id = session.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+        session["user_id"] = user_id
+    return user_id
+
+
 # ── Content helpers ───────────────────────────────────────────────────────────
 def _avatar(role: str) -> FT:
     return Div("🧑" if role == "user" else "💬", cls="avatar")
@@ -823,6 +831,7 @@ async def gateway(session):
 
 @rt("/")
 async def index(session, new: str = "", thread: str = ""):
+    _session_user_id(session)
     if new:
         session["thread"] = str(uuid.uuid4())
     elif thread and _UUID_RE.match(thread):
@@ -848,6 +857,7 @@ async def send(session, q: str = ""):
     if not q:
         return ""
     thread_id = session["thread"]
+    user_id = _session_user_id(session)
     # Create the run ONCE here. The assistant bubble then joins this run's stream
     # over SSE, so EventSource reconnects re-attach instead of starting new runs.
     try:
@@ -862,7 +872,13 @@ async def send(session, q: str = ""):
             stream_mode="messages-tuple",
             stream_resumable=True,
             if_not_exists="create",
-            metadata={"demo": "true", "demo_type": APP_SLUG},
+            metadata={
+                "demo": "true",
+                "demo_type": APP_SLUG,
+                "thread_id": thread_id,
+                "environment": os.getenv("CHAT_LANGCHAIN_LITE_ENV", "development"),
+                "user_id": user_id,
+            },
             config={
                 "run_name": f"{APP_SLUG}-demo",
                 "tags": ["engine-demo", CONTEXT_HUB_REPO],
