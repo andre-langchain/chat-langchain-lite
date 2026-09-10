@@ -244,6 +244,7 @@ def create_online_evaluator(api_key: str, ev: dict, project_id: str, model_json:
         "display_name": ev["feedback_key"],
         "session_id": project_id,
         "sampling_rate": 1.0,
+        "is_tracing_disabled": True,
         "evaluators": [
             {
                 "structured": {
@@ -265,6 +266,7 @@ def create_online_evaluator(api_key: str, ev: dict, project_id: str, model_json:
                             }
                         },
                         "required": [ev["feedback_key"]],
+                        "additionalProperties": False,
                     },
                 }
             }

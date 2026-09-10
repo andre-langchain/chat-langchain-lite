@@ -132,6 +132,7 @@ def setup_online_eval():
             "display_name": ev["display_name"],
             "session_id": str(project.id),
             "sampling_rate": 1.0,
+            "is_tracing_disabled": True,
             "evaluators": [
                 {
                     "structured": {
@@ -153,6 +154,7 @@ def setup_online_eval():
                                 },
                             },
                             "required": [ev["feedback_key"]],
+                            "additionalProperties": False,
                         },
                     }
                 }

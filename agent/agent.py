@@ -1,4 +1,5 @@
 import os
+from uuid import uuid4
 
 from langchain.agents import create_agent
 from langchain_anthropic import ChatAnthropic
@@ -54,9 +55,16 @@ def build_agent():
 
 
 def _config(thread_id: str | None = None) -> RunnableConfig:
-    metadata = {"demo": "true", "demo_type": "chat-lc-lite", "model": _model_id()}
-    if thread_id:
-        metadata["thread_id"] = thread_id
+    metadata = {
+        "demo": "true",
+        "demo_type": "chat-lc-lite",
+        "model": _model_id(),
+        "thread_id": thread_id or str(uuid4()),
+        "environment": os.getenv("CHAT_LANGCHAIN_LITE_ENV", "demo"),
+    }
+    user_id = os.getenv("CHAT_LANGCHAIN_LITE_USER")
+    if user_id:
+        metadata["user_id"] = user_id
     return RunnableConfig(
         run_name="chat-lc-lite-demo",
         metadata=metadata,
@@ -69,7 +77,7 @@ def _user_msg(question: str) -> dict:
 
 
 def invoke_agent(question: str, thread_id: str | None = None) -> dict:
-    """Run the agent once. Returns {output, tools_called, messages}."""
+    """Run once; reuse thread_id across calls for a multi-turn session."""
     result = build_agent().invoke(_user_msg(question), _config(thread_id))
     output = next(
         (m.content for m in reversed(result["messages"])
@@ -81,7 +89,7 @@ def invoke_agent(question: str, thread_id: str | None = None) -> dict:
 
 
 def stream_agent(question: str, thread_id: str | None = None):
-    """Stream the agent's response text as it's generated."""
+    """Stream a response; reuse thread_id across calls for a multi-turn session."""
     for chunk, _meta in build_agent().stream(
         _user_msg(question), _config(thread_id), stream_mode="messages"
     ):
