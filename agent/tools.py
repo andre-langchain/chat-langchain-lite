@@ -150,6 +150,8 @@ def lookup_concept(concept_name: str) -> str:
             lines.append(f"- Primary use case: {data['primary_use_case']}")
             lines.append("")
             lines.append(data["summary"])
+            lines.append("")
+            lines.append("Source coverage: this entry documents only the tagline, first release year, package name, minimum Python version, summary and primary use case above. Sub-packages, integration lists, class names, API methods and counts are NOT covered by this source.")
             return "\n".join(lines)
     available = ", ".join(k.title() for k in CONCEPTS_DB.keys())
     return f"Concept '{concept_name}' not found. Available concepts: {available}"
@@ -161,7 +163,7 @@ def get_setup_guide(topic: str) -> str:
     key = topic.lower().strip()
     for db_key, content in SETUP_GUIDES_DB.items():
         if key in db_key or db_key in key:
-            return f"**{db_key.title()} guide:**\n\n{content}"
+            return f"**{db_key.title()} guide:**\n\n{content}\n\nSource coverage: this guide documents only the setup steps, commands, configuration values, code snippets, feature notes and version guidance shown above. Anything else is not covered by this source."
     available = ", ".join(SETUP_GUIDES_DB.keys())
     return f"Topic '{topic}' not found. Available topics: {available}"
 
@@ -187,7 +189,9 @@ Your query: {query}
 - Keep prompts under version control (Prompt Hub or a checked-in `.py` file)
 - Use middleware for cross-cutting concerns (retry, guardrails, HITL) instead of hand-rolling them
 
-When in doubt, search docs.langchain.com or check the LangSmith Cookbook for worked examples."""
+When in doubt, search docs.langchain.com or check the LangSmith Cookbook for worked examples.
+
+Source coverage: the SAFE_PATTERNS and ANTIPATTERNS lists above are a fixed general best-practice list, not a per-query answer. Anything not listed is not covered by this source."""
 
 
 TOOLS = [lookup_concept, get_setup_guide, get_security_advice]
