@@ -168,7 +168,7 @@ def get_setup_guide(topic: str) -> str:
 
 @tool
 def get_security_advice(query: str) -> str:
-    """Get security and best-practice advice for LangChain/LangGraph/LangSmith projects, including recommended patterns and antipatterns to avoid."""
+    """Return a fixed general security checklist, not a query-specific lookup."""
     safe_list = "\n".join(f"  ✓ {item}" for item in SAFE_PATTERNS)
     antipatterns_list = "\n".join(f"  ✗ {item}" for item in ANTIPATTERNS)
     return f"""**LangChain Best Practices**
