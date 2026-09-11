@@ -2,7 +2,9 @@
 
 import os
 from dotenv import load_dotenv
-load_dotenv(dotenv_path="../.env", override=True)
+# Search upward from the cwd rather than hard-coding "../.env", which resolved
+# outside the repo and silently loaded nothing. Matches every other module.
+load_dotenv(override=True)
 
 from langchain.chat_models import init_chat_model
 
@@ -18,11 +20,21 @@ MODEL_CONFIG = {
     "provider": "anthropic",
     "base_url": "https://gateway.smith.langchain.com/anthropic",
 }
+_gateway_api_key = os.environ.get("LANGSMITH_API_KEY_GATEWAY")
+if not _gateway_api_key:
+    raise RuntimeError(
+        "LANGSMITH_API_KEY_GATEWAY is not set. This is the key the LangSmith "
+        "LLM Gateway authenticates model calls with, and it is separate from "
+        "LANGSMITH_API_KEY (tracing). Locally: add it to .env (see "
+        ".env.example). In GitHub Actions: add it as a repository secret and "
+        "map it into the job's env: block in .github/workflows/evals.yml."
+    )
+
 model = init_chat_model(
     model=MODEL_CONFIG["model"],
     model_provider=MODEL_CONFIG["provider"],
     base_url=MODEL_CONFIG["base_url"],
-    api_key=os.environ["LANGSMITH_API_KEY_GATEWAY"],
+    api_key=_gateway_api_key,
     max_tokens=300,
     temperature=0,
 )
