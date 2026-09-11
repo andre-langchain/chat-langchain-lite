@@ -14,6 +14,7 @@ from langsmith import Client
 from evals.dataset import DEMO_PRESENTER
 
 CONTEXT_HUB_REPO = f"chat-lc-lite-agent-{DEMO_PRESENTER}"
+PROMPT_VERSION = "unknown"
 
 
 def get_prompt() -> str:
@@ -27,7 +28,12 @@ def get_prompt() -> str:
     # `scripts/setup.py`. So the agent's instructions have a repo-side source of
     # truth: a fix to the prompt can be applied BOTH as a PR to that seed file
     # AND by updating the live Context Hub repo (`CONTEXT_HUB_REPO`).
+    global PROMPT_VERSION
+
     try:
-        return Client().pull_agent(CONTEXT_HUB_REPO).files["AGENTS.md"].content
+        agent = Client().pull_agent(CONTEXT_HUB_REPO)
+        PROMPT_VERSION = getattr(agent, "commit_hash", "unknown") or "unknown"
+        return agent.files["AGENTS.md"].content
     except Exception:
+        PROMPT_VERSION = "unknown"
         return ""

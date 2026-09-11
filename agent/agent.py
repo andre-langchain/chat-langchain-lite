@@ -1,5 +1,7 @@
 import os
+import uuid
 
+import context
 from langchain.agents import create_agent
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import AIMessageChunk, ToolMessage
@@ -54,9 +56,14 @@ def build_agent():
 
 
 def _config(thread_id: str | None = None) -> RunnableConfig:
-    metadata = {"demo": "true", "demo_type": "chat-lc-lite", "model": _model_id()}
-    if thread_id:
-        metadata["thread_id"] = thread_id
+    metadata = {
+        "demo": "true",
+        "demo_type": "chat-lc-lite",
+        "model": _model_id(),
+        "thread_id": thread_id or str(uuid.uuid4()),
+        "environment": os.getenv("CHAT_LANGCHAIN_LITE_ENV", "development"),
+        "prompt_version": context.PROMPT_VERSION,
+    }
     return RunnableConfig(
         run_name="chat-lc-lite-demo",
         metadata=metadata,
