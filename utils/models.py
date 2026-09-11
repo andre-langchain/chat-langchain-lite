@@ -23,7 +23,8 @@ model = init_chat_model(
     model_provider=MODEL_CONFIG["provider"],
     base_url=MODEL_CONFIG["base_url"],
     api_key=os.environ["LANGSMITH_API_KEY_GATEWAY"],
-    max_tokens=300,
+    # The old 300-token cap truncated long-form documentation answers.
+    max_tokens=int(os.getenv("CHAT_LANGCHAIN_LITE_MAX_TOKENS", "4096")),
     temperature=0,
 )
 

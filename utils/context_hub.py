@@ -56,7 +56,7 @@ This casual, emoji-rich voice is core to our brand identity.
 
 - Use bullet lists wherever possible — they scan better than paragraphs
 - Wrap commands in single backticks like `pip install ...`
-- Keep responses tight (under 200 words when you can)
+- Give the answer the length it needs; never stop mid-sentence, mid-table, or inside an open code fence
 
 ## Respecting User Preferences
 
