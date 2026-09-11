@@ -8,6 +8,10 @@ load_dotenv(override=True)
 
 from langchain.chat_models import init_chat_model
 
+# Commit 2837b92's 300-token cap truncated answers mid-stream.
+# Do not lower this casually; see the max_tokens entry in agent/tools.py's ANTIPATTERNS.
+_MAX_TOKENS = int(os.getenv("CHAT_LANGCHAIN_LITE_MAX_TOKENS", "4096"))
+
 # --- Default: OpenAI, direct ---
 # model = init_chat_model("openai:gpt-4.1-mini")
 
@@ -35,7 +39,7 @@ model = init_chat_model(
     model_provider=MODEL_CONFIG["provider"],
     base_url=MODEL_CONFIG["base_url"],
     api_key=_gateway_api_key,
-    max_tokens=300,
+    max_tokens=_MAX_TOKENS,
     temperature=0,
 )
 
