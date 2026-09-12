@@ -1,4 +1,25 @@
+import time
+
+import requests
 from langchain_core.tools import tool
+
+# Prefer the live docs entry for a concept; the canned CONCEPTS_DB below is the
+# offline fallback so the demo still works without network access.
+_LIVE_DOCS = "https://docs.langchain.com/api/concepts/{slug}.json"
+_BACKOFF_S = (1, 2, 4)  # docs API is flaky under load; back off between attempts
+
+
+def _fetch_live_docs(slug: str) -> dict | None:
+    for attempt in range(len(_BACKOFF_S) + 1):
+        try:
+            resp = requests.get(_LIVE_DOCS.format(slug=slug), timeout=5)
+            resp.raise_for_status()
+            return resp.json()
+        except Exception:
+            if attempt < len(_BACKOFF_S):
+                time.sleep(_BACKOFF_S[attempt])
+    return None
+
 
 # Canned documentation snippets for the most-asked LangChain ecosystem concepts.
 # Stand-in for what would normally be a Mintlify / docs search call so the demo
@@ -143,6 +164,7 @@ def lookup_concept(concept_name: str) -> str:
     key = concept_name.lower().strip()
     for db_key, data in CONCEPTS_DB.items():
         if key in db_key or db_key in key:
+            data = _fetch_live_docs(db_key.replace(" ", "-")) or data
             lines = [f"**{db_key.title()}** — {data['tagline']}"]
             lines.append(f"- First released: {data['first_released']}")
             lines.append(f"- Package: `{data['package']}`")

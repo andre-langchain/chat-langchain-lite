@@ -52,6 +52,11 @@ QUERIES = [
     {"question": "Walk me through building a LangGraph agent end-to-end with middleware, persistence, streaming, HITL, and evals — include code.", "category": "concept_info", "subcategory": "overview"},
     {"question": "Please respond without any emojis or casual greetings — just a plain, professional answer: What is LangSmith and what is it used for? Give me the full breakdown of features and use cases.", "category": "concept_info", "subcategory": "overview"},
     {"question": "Please respond without any emojis or casual greetings — just a plain, professional answer: Explain LangGraph's checkpointer persistence in detail — what backends are supported, how do I configure a Postgres one, and what are the gotchas in production?", "category": "concept_info", "subcategory": "persistence"},
+
+    # Concept lookups — one lookup_concept call each (latency bug in agent/tools.py)
+    {"question": "What's the minimum Python version for LangGraph?", "category": "concept_info", "subcategory": "requirements"},
+    {"question": "What is middleware in LangChain and when should I use it?", "category": "concept_info", "subcategory": "middleware"},
+    {"question": "Tell me about Deep Agents — what problem does it solve?", "category": "concept_info", "subcategory": "overview"},
 ]
 
 THREADS = [
