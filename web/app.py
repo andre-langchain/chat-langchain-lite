@@ -848,6 +848,8 @@ async def send(session, q: str = ""):
     if not q:
         return ""
     thread_id = session["thread"]
+    from utils.models import MODEL_CONFIG
+
     # Create the run ONCE here. The assistant bubble then joins this run's stream
     # over SSE, so EventSource reconnects re-attach instead of starting new runs.
     try:
@@ -862,7 +864,13 @@ async def send(session, q: str = ""):
             stream_mode="messages-tuple",
             stream_resumable=True,
             if_not_exists="create",
-            metadata={"demo": "true", "demo_type": APP_SLUG},
+            metadata={
+                "demo": "true",
+                "demo_type": APP_SLUG,
+                "model": MODEL_CONFIG["model"],
+                "environment": os.getenv("LANGSMITH_ENVIRONMENT", "development"),
+                "thread_id": thread_id,
+            },
             config={
                 "run_name": f"{APP_SLUG}-demo",
                 "tags": ["engine-demo", CONTEXT_HUB_REPO],
