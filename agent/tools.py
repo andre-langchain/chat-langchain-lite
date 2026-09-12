@@ -1,3 +1,4 @@
+import logging
 import time
 
 import requests
@@ -5,19 +6,70 @@ from langchain_core.tools import tool
 
 # Prefer the live docs entry for a concept; the canned CONCEPTS_DB below is the
 # offline fallback so the demo still works without network access.
-_LIVE_DOCS = "https://docs.langchain.com/api/concepts/{slug}.json"
-_BACKOFF_S = (1, 2, 4)  # docs API is flaky under load; back off between attempts
+_LIVE_DOCS = "https://docs.langchain.com/api/concepts/{slug}"
+_BACKOFF_S = (0.2,)
+_LIVE_TIMEOUT_S = 0.8
+_LIVE_FETCH_FAILURES: set[str] = set()
+_LOGGER = logging.getLogger(__name__)
 
 
 def _fetch_live_docs(slug: str) -> dict | None:
-    for attempt in range(len(_BACKOFF_S) + 1):
+    if slug in _LIVE_FETCH_FAILURES:
+        return None
+
+    for attempt in range(2):
         try:
-            resp = requests.get(_LIVE_DOCS.format(slug=slug), timeout=5)
-            resp.raise_for_status()
-            return resp.json()
-        except Exception:
-            if attempt < len(_BACKOFF_S):
+            resp = requests.get(
+                _LIVE_DOCS.format(slug=slug), timeout=_LIVE_TIMEOUT_S
+            )
+            if 400 <= resp.status_code < 500:
+                _LOGGER.warning(
+                    "Live docs fetch failed for %s with HTTP %s",
+                    slug,
+                    resp.status_code,
+                )
+                _LIVE_FETCH_FAILURES.add(slug)
+                return None
+            if resp.status_code >= 500:
+                raise requests.exceptions.HTTPError(
+                    f"HTTP {resp.status_code}", response=resp
+                )
+            payload = resp.json()
+            required_fields = {
+                "tagline",
+                "first_released",
+                "package",
+                "min_python",
+                "summary",
+                "primary_use_case",
+            }
+            if not isinstance(payload, dict) or not required_fields <= payload.keys():
+                raise ValueError("live docs response had an unexpected shape")
+            return payload
+        except (
+            requests.exceptions.ConnectionError,
+            requests.exceptions.Timeout,
+        ) as exc:
+            if attempt == 0:
                 time.sleep(_BACKOFF_S[attempt])
+                continue
+            _LOGGER.warning("Live docs fetch failed for %s: %s", slug, exc)
+            break
+        except requests.exceptions.HTTPError as exc:
+            status = (
+                exc.response.status_code if exc.response is not None else "unknown"
+            )
+            if status >= 500 and attempt == 0:
+                time.sleep(_BACKOFF_S[attempt])
+                continue
+            _LOGGER.warning(
+                "Live docs fetch failed for %s with HTTP %s", slug, status
+            )
+            break
+        except (ValueError, requests.exceptions.RequestException) as exc:
+            _LOGGER.warning("Live docs fetch failed for %s: %s", slug, exc)
+            break
+    _LIVE_FETCH_FAILURES.add(slug)
     return None
 
 
@@ -164,7 +216,10 @@ def lookup_concept(concept_name: str) -> str:
     key = concept_name.lower().strip()
     for db_key, data in CONCEPTS_DB.items():
         if key in db_key or db_key in key:
-            data = _fetch_live_docs(db_key.replace(" ", "-")) or data
+            slug = db_key.replace(" ", "-")
+            live_data = _fetch_live_docs(slug)
+            live_unavailable = live_data is None
+            data = live_data or data
             lines = [f"**{db_key.title()}** — {data['tagline']}"]
             lines.append(f"- First released: {data['first_released']}")
             lines.append(f"- Package: `{data['package']}`")
@@ -172,6 +227,8 @@ def lookup_concept(concept_name: str) -> str:
             lines.append(f"- Primary use case: {data['primary_use_case']}")
             lines.append("")
             lines.append(data["summary"])
+            if live_unavailable:
+                lines.append("- Source: offline snapshot (live docs unavailable)")
             return "\n".join(lines)
     available = ", ".join(k.title() for k in CONCEPTS_DB.keys())
     return f"Concept '{concept_name}' not found. Available concepts: {available}"
