@@ -37,7 +37,7 @@ CONCEPTS_DB = {
         "tagline": "Build stateful, multi-actor agents as graphs.",
         "first_released": "2024",
         "package": "langgraph",
-        "min_python": "3.7+",
+        "min_python": "3.10+",
         "summary": "LangGraph models agents as graphs: nodes are functions, edges define control flow, and a typed state object is passed between them. Built-in persistence (checkpointers), interrupts, and streaming.",
         "primary_use_case": "Long-running, multi-step agents and human-in-the-loop workflows.",
     },
@@ -62,7 +62,7 @@ CONCEPTS_DB = {
         "first_released": "2024",
         "package": "langchain (langchain.agents.middleware)",
         "min_python": "3.10+",
-        "summary": "AgentMiddleware lets you add cross-cutting behavior (retry, fallbacks, guardrails, human-in-the-loop) without modifying the agent itself. Stack middlewares — order matters.",
+        "summary": "AgentMiddleware lets you add cross-cutting behavior (retry, fallbacks, guardrails, human-in-the-loop) without modifying the agent itself. Its hook surface includes wrap_model_call, wrap_tool_call, before_model, and after_model, defined as methods on AgentMiddleware subclasses. Stack middlewares — order matters.",
         "primary_use_case": "Human approval, content guardrails, retries, and structured output.",
     },
     "tracing": {
