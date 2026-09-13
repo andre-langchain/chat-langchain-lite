@@ -1,4 +1,4 @@
-import time
+import logging
 
 import requests
 from langchain_core.tools import tool
@@ -6,18 +6,20 @@ from langchain_core.tools import tool
 # Prefer the live docs entry for a concept; the canned CONCEPTS_DB below is the
 # offline fallback so the demo still works without network access.
 _LIVE_DOCS = "https://docs.langchain.com/api/concepts/{slug}.json"
-_BACKOFF_S = (1, 2, 4)  # docs API is flaky under load; back off between attempts
+_BACKOFF_S = ()
+logger = logging.getLogger(__name__)
 
 
 def _fetch_live_docs(slug: str) -> dict | None:
     for attempt in range(len(_BACKOFF_S) + 1):
         try:
-            resp = requests.get(_LIVE_DOCS.format(slug=slug), timeout=5)
+            resp = requests.get(_LIVE_DOCS.format(slug=slug), timeout=1)
             resp.raise_for_status()
             return resp.json()
-        except Exception:
+        except Exception as exc:
+            logger.warning("Live docs fetch failed for %s: %s", slug, exc)
             if attempt < len(_BACKOFF_S):
-                time.sleep(_BACKOFF_S[attempt])
+                continue
     return None
 
 
@@ -37,7 +39,7 @@ CONCEPTS_DB = {
         "tagline": "Build stateful, multi-actor agents as graphs.",
         "first_released": "2024",
         "package": "langgraph",
-        "min_python": "3.7+",
+        "min_python": "3.10+",
         "summary": "LangGraph models agents as graphs: nodes are functions, edges define control flow, and a typed state object is passed between them. Built-in persistence (checkpointers), interrupts, and streaming.",
         "primary_use_case": "Long-running, multi-step agents and human-in-the-loop workflows.",
     },
@@ -164,7 +166,9 @@ def lookup_concept(concept_name: str) -> str:
     key = concept_name.lower().strip()
     for db_key, data in CONCEPTS_DB.items():
         if key in db_key or db_key in key:
-            data = _fetch_live_docs(db_key.replace(" ", "-")) or data
+            live_data = _fetch_live_docs(db_key.replace(" ", "-"))
+            is_live = live_data is not None
+            data = live_data or data
             lines = [f"**{db_key.title()}** — {data['tagline']}"]
             lines.append(f"- First released: {data['first_released']}")
             lines.append(f"- Package: `{data['package']}`")
@@ -172,6 +176,8 @@ def lookup_concept(concept_name: str) -> str:
             lines.append(f"- Primary use case: {data['primary_use_case']}")
             lines.append("")
             lines.append(data["summary"])
+            if not is_live:
+                lines.append("- Source: cached offline snapshot (live docs unavailable)")
             return "\n".join(lines)
     available = ", ".join(k.title() for k in CONCEPTS_DB.keys())
     return f"Concept '{concept_name}' not found. Available concepts: {available}"
