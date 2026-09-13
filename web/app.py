@@ -116,6 +116,14 @@ def _ls() -> Client:
     return _LS_CLIENT
 
 
+def _ensure_session_identity(session) -> tuple[str, str]:
+    if "thread" not in session:
+        session["thread"] = str(uuid.uuid4())
+    if "user_id" not in session:
+        session["user_id"] = str(uuid.uuid4())
+    return session["thread"], session["user_id"]
+
+
 def _logo_data_uri() -> str:
     path = Path(__file__).resolve().parent / "langchain-color.png"
     b64 = base64.b64encode(path.read_bytes()).decode()
@@ -823,6 +831,7 @@ async def gateway(session):
 
 @rt("/")
 async def index(session, new: str = "", thread: str = ""):
+    _ensure_session_identity(session)
     if new:
         session["thread"] = str(uuid.uuid4())
     elif thread and _UUID_RE.match(thread):
@@ -843,11 +852,9 @@ async def index(session, new: str = "", thread: str = ""):
 @rt("/send")
 async def send(session, q: str = ""):
     q = (q or "").strip()
-    if "thread" not in session:
-        session["thread"] = str(uuid.uuid4())
+    thread_id, user_id = _ensure_session_identity(session)
     if not q:
         return ""
-    thread_id = session["thread"]
     # Create the run ONCE here. The assistant bubble then joins this run's stream
     # over SSE, so EventSource reconnects re-attach instead of starting new runs.
     try:
@@ -855,6 +862,8 @@ async def send(session, q: str = ""):
         # so the chat UI's runs aren't named after the bare graph ("chat_langchain_lite").
         # `run_name` is a valid RunnableConfig field the graph honors; the SDK's
         # Config TypedDict just omits it, hence the ignore.
+        from utils.models import MODEL_CONFIG
+
         run = await get_client(url=_api_url()).runs.create(  # ty: ignore[no-matching-overload]
             thread_id,
             ASSISTANT_ID,
@@ -862,7 +871,14 @@ async def send(session, q: str = ""):
             stream_mode="messages-tuple",
             stream_resumable=True,
             if_not_exists="create",
-            metadata={"demo": "true", "demo_type": APP_SLUG},
+            metadata={
+                "demo": "true",
+                "demo_type": APP_SLUG,
+                "thread_id": thread_id,
+                "user_id": user_id,
+                "environment": os.getenv("CHAT_LANGCHAIN_LITE_ENV") or "development",
+                "model": MODEL_CONFIG["model"],
+            },
             config={
                 "run_name": f"{APP_SLUG}-demo",
                 "tags": ["engine-demo", CONTEXT_HUB_REPO],
