@@ -20,6 +20,7 @@ MODEL_CONFIG = {
     "provider": "anthropic",
     "base_url": "https://gateway.smith.langchain.com/anthropic",
 }
+_MAX_TOKENS = int(os.getenv("CHAT_LANGCHAIN_LITE_MAX_TOKENS", "4096"))
 _gateway_api_key = os.environ.get("LANGSMITH_API_KEY_GATEWAY")
 if not _gateway_api_key:
     raise RuntimeError(
@@ -35,7 +36,8 @@ model = init_chat_model(
     model_provider=MODEL_CONFIG["provider"],
     base_url=MODEL_CONFIG["base_url"],
     api_key=_gateway_api_key,
-    max_tokens=300,
+    # The previous hardcoded 300-token cap truncated multi-section code answers mid-fence.
+    max_tokens=_MAX_TOKENS,
     temperature=0,
 )
 
