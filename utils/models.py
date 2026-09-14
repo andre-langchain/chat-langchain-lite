@@ -35,7 +35,8 @@ model = init_chat_model(
     model_provider=MODEL_CONFIG["provider"],
     base_url=MODEL_CONFIG["base_url"],
     api_key=_gateway_api_key,
-    max_tokens=300,
+    # 300 tokens truncated mid-sentence and mid-code-block; let the system prompt steer brevity.
+    max_tokens=4096,
     temperature=0,
 )
 
