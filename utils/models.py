@@ -20,6 +20,8 @@ MODEL_CONFIG = {
     "provider": "anthropic",
     "base_url": "https://gateway.smith.langchain.com/anthropic",
 }
+MODEL_CONFIG["model"] = os.getenv("CHAT_LANGCHAIN_LITE_MODEL") or MODEL_CONFIG["model"]
+MODEL_ID = MODEL_CONFIG["model"]
 _gateway_api_key = os.environ.get("LANGSMITH_API_KEY_GATEWAY")
 if not _gateway_api_key:
     raise RuntimeError(
