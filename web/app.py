@@ -855,6 +855,17 @@ async def send(session, q: str = ""):
         # so the chat UI's runs aren't named after the bare graph ("chat_langchain_lite").
         # `run_name` is a valid RunnableConfig field the graph honors; the SDK's
         # Config TypedDict just omits it, hence the ignore.
+        from utils.models import MODEL_CONFIG
+
+        metadata = {
+            "demo": "true",
+            "demo_type": APP_SLUG,
+            "model": MODEL_CONFIG["model"],
+            "ls_provider": MODEL_CONFIG["provider"],
+            "environment": os.getenv("CHAT_LANGCHAIN_LITE_ENV", "development"),
+        }
+        if session.get("user_id"):
+            metadata["user_id"] = session["user_id"]
         run = await get_client(url=_api_url()).runs.create(  # ty: ignore[no-matching-overload]
             thread_id,
             ASSISTANT_ID,
@@ -862,7 +873,7 @@ async def send(session, q: str = ""):
             stream_mode="messages-tuple",
             stream_resumable=True,
             if_not_exists="create",
-            metadata={"demo": "true", "demo_type": APP_SLUG},
+            metadata=metadata,
             config={
                 "run_name": f"{APP_SLUG}-demo",
                 "tags": ["engine-demo", CONTEXT_HUB_REPO],
