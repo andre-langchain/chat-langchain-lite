@@ -1,3 +1,4 @@
+import os
 import time
 
 import requests
@@ -6,18 +7,36 @@ from langchain_core.tools import tool
 # Prefer the live docs entry for a concept; the canned CONCEPTS_DB below is the
 # offline fallback so the demo still works without network access.
 _LIVE_DOCS = "https://docs.langchain.com/api/concepts/{slug}.json"
-_BACKOFF_S = (1, 2, 4)  # docs API is flaky under load; back off between attempts
+_LIVE_DOCS_ENABLED = os.getenv("CHAT_LANGCHAIN_LITE_LIVE_DOCS", "").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+_BACKOFF_S = (0.2, 0.5)
+_LIVE_DOCS_CACHE: dict[str, dict | None] = {}
 
 
 def _fetch_live_docs(slug: str) -> dict | None:
+    if not _LIVE_DOCS_ENABLED:
+        return None
+    if slug in _LIVE_DOCS_CACHE:
+        return _LIVE_DOCS_CACHE[slug]
     for attempt in range(len(_BACKOFF_S) + 1):
         try:
-            resp = requests.get(_LIVE_DOCS.format(slug=slug), timeout=5)
+            resp = requests.get(_LIVE_DOCS.format(slug=slug), timeout=2)
             resp.raise_for_status()
-            return resp.json()
+            result = resp.json()
+            _LIVE_DOCS_CACHE[slug] = result
+            return result
+        except requests.exceptions.HTTPError as exc:
+            if exc.response is not None and 400 <= exc.response.status_code < 500:
+                _LIVE_DOCS_CACHE[slug] = None
+                return None
         except Exception:
-            if attempt < len(_BACKOFF_S):
-                time.sleep(_BACKOFF_S[attempt])
+            pass
+        if attempt < len(_BACKOFF_S):
+            time.sleep(_BACKOFF_S[attempt])
+    _LIVE_DOCS_CACHE[slug] = None
     return None
 
 
