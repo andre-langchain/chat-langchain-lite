@@ -71,6 +71,12 @@ ASSISTANT_ID = "chat_langchain_lite"
 # `_config`) so the chat UI's traces line up with the scripted path.
 APP_SLUG = "chat-lc-lite"
 
+
+def _model_id() -> str:
+    from utils.models import MODEL_CONFIG
+
+    return MODEL_CONFIG["model"]
+
 # Human-feedback keys emitted by this chat UI and consumed by the monitoring /
 # online-eval automation. Keep these names stable so the two can't drift.
 SCORE_KEY = "user_score"
@@ -862,7 +868,13 @@ async def send(session, q: str = ""):
             stream_mode="messages-tuple",
             stream_resumable=True,
             if_not_exists="create",
-            metadata={"demo": "true", "demo_type": APP_SLUG},
+            metadata={
+                "demo": "true",
+                "demo_type": APP_SLUG,
+                "model": _model_id(),
+                "environment": os.getenv("CHAT_LANGCHAIN_LITE_ENV", "development"),
+                "thread_id": thread_id,
+            },
             config={
                 "run_name": f"{APP_SLUG}-demo",
                 "tags": ["engine-demo", CONTEXT_HUB_REPO],
