@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 # outside the repo and silently loaded nothing. Matches every other module.
 load_dotenv(override=True)
 
+_MAX_TOKENS = int(os.getenv("CHAT_LANGCHAIN_LITE_MAX_TOKENS", "4096"))
+
 from langchain.chat_models import init_chat_model
 
 # --- Default: OpenAI, direct ---
@@ -35,7 +37,7 @@ model = init_chat_model(
     model_provider=MODEL_CONFIG["provider"],
     base_url=MODEL_CONFIG["base_url"],
     api_key=_gateway_api_key,
-    max_tokens=300,
+    max_tokens=_MAX_TOKENS,
     temperature=0,
 )
 
