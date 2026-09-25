@@ -1,4 +1,5 @@
-import time
+import logging
+import os
 
 import requests
 from langchain_core.tools import tool
@@ -6,19 +7,23 @@ from langchain_core.tools import tool
 # Prefer the live docs entry for a concept; the canned CONCEPTS_DB below is the
 # offline fallback so the demo still works without network access.
 _LIVE_DOCS = "https://docs.langchain.com/api/concepts/{slug}.json"
-_BACKOFF_S = (1, 2, 4)  # docs API is flaky under load; back off between attempts
+_LIVE_DOCS_ENABLED = os.getenv("CHAT_LANGCHAIN_LITE_LIVE_DOCS", "0") == "1"
+_LIVE_DOCS_FAILED: set[str] = set()
 
 
 def _fetch_live_docs(slug: str) -> dict | None:
-    for attempt in range(len(_BACKOFF_S) + 1):
-        try:
-            resp = requests.get(_LIVE_DOCS.format(slug=slug), timeout=5)
-            resp.raise_for_status()
-            return resp.json()
-        except Exception:
-            if attempt < len(_BACKOFF_S):
-                time.sleep(_BACKOFF_S[attempt])
-    return None
+    if not _LIVE_DOCS_ENABLED or slug in _LIVE_DOCS_FAILED:
+        return None
+    try:
+        resp = requests.get(_LIVE_DOCS.format(slug=slug), timeout=1.5)
+        resp.raise_for_status()
+        return resp.json()
+    except Exception as exc:
+        _LIVE_DOCS_FAILED.add(slug)
+        logging.getLogger(__name__).warning(
+            "live docs fetch failed for %s: %s", slug, exc
+        )
+        return None
 
 
 # Canned documentation snippets for the most-asked LangChain ecosystem concepts.
