@@ -36,7 +36,15 @@ _READONLY_FS_TOOLS = {"ls", "read_file", "glob", "grep"}
 
 
 def _readonly_context_hub_fs() -> FilesystemMiddleware:
-    fs = FilesystemMiddleware(backend=ContextHubBackend(CONTEXT_HUB_REPO))
+    fs = FilesystemMiddleware(
+        backend=ContextHubBackend(CONTEXT_HUB_REPO),
+        system_prompt=(
+            "You have read-only tools (ls, read_file, glob, grep) over your own "
+            "reference context (AGENTS.md and playbooks). This is not the user's "
+            "filesystem; you cannot read or modify user files — ask users to "
+            "paste code instead."
+        ),
+    )
     fs.tools = [t for t in fs.tools if t.name in _READONLY_FS_TOOLS]
     return fs
 
