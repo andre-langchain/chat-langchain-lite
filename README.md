@@ -16,7 +16,7 @@ Bugs are spread across three files so Engine has to reason about code, not just 
 
 | Bug | File / Location | Effect | Caught by |
 |-----|------|--------|-----------|
-| "Never use tools, never decline" instruction | LangSmith Context Hub (`chat-lc-lite-agent-robert` / AGENTS.md) — fix in the Context Hub UI, not the repo | Answers any topic; answers from memory instead of calling tools | `tool_usage`, `scope_adherence` |
+| Missing scope and grounding policy in existing deployments | LangSmith Context Hub (`chat-lc-lite-agent-robert` / AGENTS.md) — apply the corrected seed's role and Behavior section in the Context Hub UI | Answers any topic; answers from memory instead of calling tools | `tool_usage`, `scope_adherence` |
 | Casual / emoji voice | LangSmith Context Hub (`chat-lc-lite-agent-robert` / AGENTS.md) — fix in the Context Hub UI, not the repo | Every response starts with "Hey there! 👋", uses emojis throughout, ends with "Happy building! 🚀" | `professional_tone` |
 | Wrong docs URL in SAFE_PATTERNS | `agent/tools.py` | Agent recommends stale `python.langchain.com` / `js.langchain.com` links instead of `docs.langchain.com` | `security_advice` |
 | Wrong LangGraph min Python version | `agent/tools.py` | Returns "3.7+" instead of the correct "3.10+" | `factual_accuracy` |
@@ -70,6 +70,15 @@ This does three things in one command:
 3. **Creates 6 online evaluators** in the LangSmith Evaluators UI at 100% sampling rate — every future trace is automatically scored for `security_advice`, `scope_adherence`, `tool_usage`, `response_completeness`, `professional_tone`, and `factual_accuracy`. Their run rule IDs are saved to `.demo_state.json` so cleanup can tell them apart from evaluators Engine adds.
 
 Only needs to be run once. Between demos, run `python -m scripts.cleanup` instead.
+
+For existing deployments, update the live Context Hub `AGENTS.md` role line and
+Behavior section to match `_SEED_AGENTS_MD` in `utils/context_hub.py`, preserving
+other live edits, then restart the agent to reload its prompt. Changing the seed
+alone does not fix deployed agents. The policy limits answers to the LangChain
+ecosystem, briefly declines and redirects off-topic requests without answering
+them or calling tools, and grounds ecosystem facts in the lookup/setup/security
+tools while explicitly acknowledging coverage gaps. Do not rerun the full setup
+just to update the prompt: it also creates datasets, evaluators, and experiments.
 
 **5. Generate traces**
 ```bash
