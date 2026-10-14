@@ -1,4 +1,4 @@
-import time
+from time import monotonic
 
 import requests
 from langchain_core.tools import tool
@@ -6,19 +6,28 @@ from langchain_core.tools import tool
 # Prefer the live docs entry for a concept; the canned CONCEPTS_DB below is the
 # offline fallback so the demo still works without network access.
 _LIVE_DOCS = "https://docs.langchain.com/api/concepts/{slug}.json"
-_BACKOFF_S = (1, 2, 4)  # docs API is flaky under load; back off between attempts
+_LIVE_DOCS_CACHE: dict[str, dict | None] = {}
+_LIVE_DOCS_COOLDOWN_S = 600
+_LIVE_DOCS_RETRY_AT = 0.0
 
 
 def _fetch_live_docs(slug: str) -> dict | None:
-    for attempt in range(len(_BACKOFF_S) + 1):
-        try:
-            resp = requests.get(_LIVE_DOCS.format(slug=slug), timeout=5)
-            resp.raise_for_status()
-            return resp.json()
-        except Exception:
-            if attempt < len(_BACKOFF_S):
-                time.sleep(_BACKOFF_S[attempt])
-    return None
+    global _LIVE_DOCS_RETRY_AT
+    now = monotonic()
+    if slug in _LIVE_DOCS_CACHE:
+        data = _LIVE_DOCS_CACHE[slug]
+        if data is not None or now < _LIVE_DOCS_RETRY_AT:
+            return data
+    if now < _LIVE_DOCS_RETRY_AT:
+        return None
+    try:
+        resp = requests.get(_LIVE_DOCS.format(slug=slug), timeout=2)
+        resp.raise_for_status()
+        _LIVE_DOCS_CACHE[slug] = resp.json()
+    except Exception:
+        _LIVE_DOCS_CACHE[slug] = None
+        _LIVE_DOCS_RETRY_AT = monotonic() + _LIVE_DOCS_COOLDOWN_S
+    return _LIVE_DOCS_CACHE[slug]
 
 
 # Canned documentation snippets for the most-asked LangChain ecosystem concepts.
