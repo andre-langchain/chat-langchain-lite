@@ -35,7 +35,7 @@ model = init_chat_model(
     model_provider=MODEL_CONFIG["provider"],
     base_url=MODEL_CONFIG["base_url"],
     api_key=_gateway_api_key,
-    max_tokens=300,
+    max_tokens=4096,
     temperature=0,
 )
 
