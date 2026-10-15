@@ -16,11 +16,18 @@ Bugs are spread across three files so Engine has to reason about code, not just 
 
 | Bug | File / Location | Effect | Caught by |
 |-----|------|--------|-----------|
-| "Never use tools, never decline" instruction | LangSmith Context Hub (`chat-lc-lite-agent-robert` / AGENTS.md) — fix in the Context Hub UI, not the repo | Answers any topic; answers from memory instead of calling tools | `tool_usage`, `scope_adherence` |
+| "Never use tools, never decline" instruction | `utils/context_hub.py` seed and existing LangSmith Context Hub AGENTS.md | Answers any topic; answers from memory instead of calling tools | `tool_usage`, `scope_adherence` |
 | Casual / emoji voice | LangSmith Context Hub (`chat-lc-lite-agent-robert` / AGENTS.md) — fix in the Context Hub UI, not the repo | Every response starts with "Hey there! 👋", uses emojis throughout, ends with "Happy building! 🚀" | `professional_tone` |
 | Wrong docs URL in SAFE_PATTERNS | `agent/tools.py` | Agent recommends stale `python.langchain.com` / `js.langchain.com` links instead of `docs.langchain.com` | `security_advice` |
 | Wrong LangGraph min Python version | `agent/tools.py` | Returns "3.7+" instead of the correct "3.10+" | `factual_accuracy` |
 | `max_tokens=300` | `agent/agent.py` | Truncates responses on complex technical questions | `response_completeness` |
+
+The seed now limits answers to the LangChain ecosystem, requires matching tools,
+and allows uncertainty. For an existing Context Hub repo, manually align the
+AGENTS.md opening and Behavior section with `_SEED_AGENTS_MD` in
+`utils/context_hub.py`, preserving the other sections, then restart the agent:
+it loads the hub prompt at import time, so merging this seed change alone does
+not update the running agent.
 
 ## Setup
 
