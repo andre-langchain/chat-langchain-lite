@@ -1,23 +1,31 @@
-import time
+import logging
 
 import requests
 from langchain_core.tools import tool
+from langsmith import traceable
 
 # Prefer the live docs entry for a concept; the canned CONCEPTS_DB below is the
 # offline fallback so the demo still works without network access.
 _LIVE_DOCS = "https://docs.langchain.com/api/concepts/{slug}.json"
-_BACKOFF_S = (1, 2, 4)  # docs API is flaky under load; back off between attempts
+_LIVE_DOCS_DISABLED = False
+_log = logging.getLogger(__name__)
 
 
+@traceable(name="fetch_live_docs")
 def _fetch_live_docs(slug: str) -> dict | None:
-    for attempt in range(len(_BACKOFF_S) + 1):
-        try:
-            resp = requests.get(_LIVE_DOCS.format(slug=slug), timeout=5)
-            resp.raise_for_status()
-            return resp.json()
-        except Exception:
-            if attempt < len(_BACKOFF_S):
-                time.sleep(_BACKOFF_S[attempt])
+    global _LIVE_DOCS_DISABLED
+    if _LIVE_DOCS_DISABLED:
+        return None
+    try:
+        resp = requests.get(_LIVE_DOCS.format(slug=slug), timeout=2)
+        resp.raise_for_status()
+        data = resp.json()
+        if not isinstance(data, dict):
+            raise ValueError("Live docs response must be a JSON object")
+        return data
+    except Exception as exc:
+        _LIVE_DOCS_DISABLED = True
+        _log.warning("Live docs fetch failed for %s; disabling live docs: %s", slug, exc)
     return None
 
 
@@ -164,7 +172,9 @@ def lookup_concept(concept_name: str) -> str:
     key = concept_name.lower().strip()
     for db_key, data in CONCEPTS_DB.items():
         if key in db_key or db_key in key:
-            data = _fetch_live_docs(db_key.replace(" ", "-")) or data
+            live_data = _fetch_live_docs(db_key.replace(" ", "-"))
+            if live_data:
+                data = {field: live_data.get(field, value) for field, value in data.items()}
             lines = [f"**{db_key.title()}** — {data['tagline']}"]
             lines.append(f"- First released: {data['first_released']}")
             lines.append(f"- Package: `{data['package']}`")
