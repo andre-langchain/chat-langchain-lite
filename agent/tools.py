@@ -1,4 +1,4 @@
-import time
+from functools import lru_cache
 
 import requests
 from langchain_core.tools import tool
@@ -6,19 +6,18 @@ from langchain_core.tools import tool
 # Prefer the live docs entry for a concept; the canned CONCEPTS_DB below is the
 # offline fallback so the demo still works without network access.
 _LIVE_DOCS = "https://docs.langchain.com/api/concepts/{slug}.json"
-_BACKOFF_S = (1, 2, 4)  # docs API is flaky under load; back off between attempts
 
 
+@lru_cache(maxsize=None)
 def _fetch_live_docs(slug: str) -> dict | None:
-    for attempt in range(len(_BACKOFF_S) + 1):
-        try:
-            resp = requests.get(_LIVE_DOCS.format(slug=slug), timeout=5)
-            resp.raise_for_status()
-            return resp.json()
-        except Exception:
-            if attempt < len(_BACKOFF_S):
-                time.sleep(_BACKOFF_S[attempt])
-    return None
+    try:
+        resp = requests.get(_LIVE_DOCS.format(slug=slug), timeout=1)
+        resp.raise_for_status()
+        if not 200 <= resp.status_code < 300:
+            return None
+        return resp.json()
+    except Exception:
+        return None
 
 
 # Canned documentation snippets for the most-asked LangChain ecosystem concepts.
