@@ -1,8 +1,9 @@
 import os
+import re
 
 from langchain.agents import create_agent
 from langchain_anthropic import ChatAnthropic
-from langchain_core.messages import AIMessageChunk, ToolMessage
+from langchain_core.messages import AIMessage, AIMessageChunk, ToolMessage
 from langchain_core.runnables import RunnableConfig
 
 from deepagents.middleware.filesystem import FilesystemMiddleware
@@ -76,6 +77,25 @@ def invoke_agent(question: str, thread_id: str | None = None) -> dict:
          if isinstance(getattr(m, "content", None), str) and m.content),
         "",
     )
+    last_ai_message = next(
+        (message for message in reversed(result["messages"]) if isinstance(message, AIMessage)),
+        None,
+    )
+    if last_ai_message and last_ai_message.response_metadata.get("stop_reason") == "max_tokens":
+        open_fence = ""
+        for line in output.splitlines():
+            fence_match = re.match(r" {0,3}(`{3,}|~{3,})(.*)$", line)
+            if not fence_match:
+                continue
+            fence, suffix = fence_match.groups()
+            if not open_fence:
+                if fence[0] != "`" or "`" not in suffix:
+                    open_fence = fence
+            elif fence[0] == open_fence[0] and len(fence) >= len(open_fence) and not suffix.strip():
+                open_fence = ""
+        if open_fence:
+            output += "\n" + open_fence
+        output += "\n\n_(Response truncated at the output limit.)_"
     tools_called = [m.name for m in result["messages"] if isinstance(m, ToolMessage)]
     return {"output": output, "tools_called": tools_called, "messages": result["messages"]}
 
