@@ -16,7 +16,7 @@ from langchain.chat_models import init_chat_model
 # policies (PII / secrets / allow-lists / cost caps) are enforced.
 # MODEL_CONFIG is the single source the frontend's Gateway pane reads.
 MODEL_CONFIG = {
-    "model": "claude-sonnet-4-6",
+    "model": "claude-haiku-4-5-20251001",
     "provider": "anthropic",
     "base_url": "https://gateway.smith.langchain.com/anthropic",
 }
@@ -30,14 +30,16 @@ if not _gateway_api_key:
         "map it into the job's env: block in .github/workflows/evals.yml."
     )
 
-model = init_chat_model(
-    model=MODEL_CONFIG["model"],
-    model_provider=MODEL_CONFIG["provider"],
-    base_url=MODEL_CONFIG["base_url"],
-    api_key=_gateway_api_key,
-    max_tokens=300,
-    temperature=0,
-)
+
+def get_model(model_id: str | None = None):
+    return init_chat_model(
+        model=model_id or os.getenv("CHAT_LANGCHAIN_LITE_MODEL") or MODEL_CONFIG["model"],
+        model_provider=MODEL_CONFIG["provider"],
+        base_url=MODEL_CONFIG["base_url"],
+        api_key=_gateway_api_key,
+        max_tokens=300,
+        temperature=0,
+    )
 
 # --- Anthropic ---
 # model = init_chat_model("anthropic:claude-sonnet-4-5")
